@@ -1,0 +1,39 @@
+version: '2'
+services:
+  repl:
+    build:
+      context: .
+
+  # Postgres might be useful to show how the data
+  # eventually ends up there
+  pg:
+    image: postgres:10
+    environment:
+      - POSTGRES_PASSWORD=kafka
+      - POSTGRES_DB=kafka
+      - POSTGRES_USER=kafka
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:4.0.0
+    hostname: zookeeper
+    ports:
+      - "22181:2181"
+
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:4.0.0
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    # do we need ports here?
+    ports:
+      - '29092:29092'
+
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092'

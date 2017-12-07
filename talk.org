@@ -1,0 +1,235 @@
+#+AUTHOR: @andreacrotti
+#+TITLE: Tame Kafka with Clojure
+#+OPTIONS: num:nil ^:nil tex:t toc:nil reveal_progress:t reveal_control:t reveal_overview:t
+#+REVEAL_TRANS: fade
+#+REVEAL_SPEED: fast
+#+EMAIL: andrea.crotti.0@gmail.com
+#+TOC: listings
+
+* TOC
+
+- What is Kakfa
+- Why Kafka
+- Kafka and Clojure
+- Demo time
+- Real world scenario
+
+* What is Kafka
+
+** Kafka
+
+- distributed *append only immutable* log
+- extremely scalable (constant time)
+- >250k SLOC (Java/Scala)
+- Zookeeper for distribution
+- open sourced by LinkedIn in 2011
+- just recently released 1.0
+
+** Components
+
+- Publisher API
+- Consumer API
+- Stream API
+- Connector API
+
+** Log anatomy
+
+This is an example of how partitions look like, so each partition is
+simply an ordered, immutable sequence of records that is continually
+appended to.
+
+Each record has assigned an offset in the form of a sequential id,
+that it's used to reference to it univocally.
+
+An important thing to keep in mind is that Kafka will store all your
+records forever, but it will enforce a retention period, which is the
+number of days something is available to be consumed. This allows to
+have constant time performances independently by the amount of total
+data currently stored.
+
+#+END_NOTES
+
+[[./images/log_anatomy.png]]
+
+** Log producer
+
+[[./images/consumer-groups.png]]
+
+** Log consumer
+
+[[./images/log_consumer.png]]
+
+** Streaming
+
+[[./images/kc_streams.jpeg]]
+
+* Why Kafka
+
+- Scalability
+- Data integrity
+- Auditing
+- Proper Microservices
+
+** Data dichotomy
+
+[[./images/dicothomy.png]]
+
+* Clojure
+
+- *Functional* Lisp
+- *Immutable* by default
+- *Data* centric
+- *JVM* based (but also JS and CLR)
+- Great *REPL* experience
+
+* Demo Time
+
+[[./images/demo.gif]]
+  
+* Case study - Reconciliation
+** Reconciler
+
+#+BEGIN_SRC dot :file graph.png :cmdline -T png :exports none :results silent
+  digraph reconciler {
+          r [label="repayments"];
+          tr [label="transactions"];
+          rec [label="Reconciles?", shape="diamond"];
+          rec_r [label="Reconciled\nrepayments"];
+          unrec_r [label="Unreconciled\nrepayments"];
+          unrec_tr [label="Unreconciled\ntransactions"];
+
+          r -> rec;
+          tr -> rec;
+          rec -> rec_r [label="Y"];
+          rec -> unrec_r [label="N"];
+          rec -> unrec_tr [label="N"];
+   }
+#+END_SRC
+
+#+RESULTS:
+[[file:graph.png -T png]]
+
+[[./graph.png]]
+
+** Implementation
+
+- ingest repayments topic
+- ingest transactions topic
+- repayments ⨝ transactions
+- augment that with reconciled? information
+- branch on reconciled? to various output topics
+
+** Data flow (1)
+
+Ingest input topics:
+
+#+BEGIN_SRC clojure
+  ;; bank transactions
+  {:id 1
+   :amount-cents 100
+   :value-date "2017-01-01"}
+
+  {:id 2
+   :amount-cents 150
+   :value-date "2017-01-04"}
+
+  ;; repayments
+  {:id 1
+   :amount-cents 100
+   :effective-date "2017-01-01"}
+#+END_SRC
+
+** Data flow (2)
+
+Left join and augment:
+
+#+BEGIN_SRC clojure
+  ;; first payment reconciled
+  {:transaction {:id 1
+                 :amount-cents 100
+                 :value-date "2017-01-01"}
+
+   :repayment {:id 1
+               :amount-cents 100
+               :effective-date "2017-01-01"}
+
+   :reconciled? true}
+  ;; second repayment didn't reconcile
+  {:transaction {:id 2
+                 :amount-cents 150
+                 :value-date "2017-01-04"}
+
+   :repayment {:id 1
+               :amount-cents 100
+               :effective-date "2017-01-01"}
+
+   :reconciled? false}
+#+END_SRC
+
+** Data flow (3)
+
+Branch on reconciled:
+
+#+BEGIN_SRC clojure
+  ;; bank transactions reconciled
+  {:id 1
+   :repayment-id 1
+   :amount-cents 100
+   :value-date "2017-01-01"}
+
+  ;; repayments un-reconciled
+  {:id 1
+   :amount-cents 150
+   :effective-date "2017-01-04"}
+#+END_SRC
+
+** Business logic (1)
+
+Core business logic is just *pure functions*
+
+#+BEGIN_SRC clojure
+
+  (defn dates-reconciles?
+    [value-date effective-date]
+    (and (not (t/before? value-date effective-date))
+         (<= (t/in-days (t/interval effective-date value-date))
+             reconciliation-window)))
+
+  (defn reconciles?
+    [bank-transaction repayment]
+    (and (some? bank-transaction)
+         (some? repayment)
+         (= (:amount-cents bank-transaction) (:amount-cents repayment))
+         (dates-reconciles? (tc/to-date-time (:value-date bank-transaction))
+                            (tc/to-date-time (:effective-date repayment)))))
+
+  ;; (reconciles?
+  ;;  {:amount-cents 100 :value-date "2018-01-01"}
+  ;;  {:amount-cents 100 :effective-date "2018-01-01"}) => true
+#+END_SRC
+
+** Business logic (2)
+
+#+BEGIN_SRC clojure
+
+  (defn set-reconciled
+    [repayment txn]
+    {:bank-transaction txn
+     :repayment        repayment
+     :reconciled       (reconciles? txn repayment)})
+
+#+END_SRC
+
+* Conclusions
+
+We ♡ Clojure
+
+Clojure ♡ Kafka
+
+➜ We ♡ Kafka
+
+And *we are hiring* https://www.fundingcircle.com/uk/careers/
+
+# Local Variables:
+# after-save-hook: (org-reveal-export-to-html)
+# End:
