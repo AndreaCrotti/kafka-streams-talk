@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Tame Kafka with Clojure</title>
+<meta name="author" content="(@andreacrotti)"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="/home/andrea/projects/forks/reveal.js/css/reveal.css"/>
+
+<link rel="stylesheet" href="/home/andrea/projects/forks/reveal.js/css/theme/moon.css" id="theme"/>
+
+
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = '/home/andrea/projects/forks/reveal.js/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide"><h1 class="title">Tame Kafka with Clojure</h1><h2 class="author">@andreacrotti</h2><p class="date">Created: 2018-04-02 Mon 15:08</p>
+</section>
+
+<section>
+<section id="slide-org9ca96de">
+<h2 id="org9ca96de">TOC</h2>
+<ul>
+<li>What is Kakfa</li>
+<li>Why Kafka</li>
+<li>Kafka and Clojure</li>
+<li>Demo time</li>
+<li>Real world scenario</li>
+
+</ul>
+
+</section>
+<section id="slide-org1bb4c82">
+<h3 id="org1bb4c82">Kafka</h3>
+<ul>
+<li>distributed <b>append only immutable</b> log</li>
+<li>extremely scalable (constant time)</li>
+<li>&gt;250k SLOC (Java/Scala)</li>
+<li>Zookeeper for distribution</li>
+<li>open sourced by LinkedIn in 2011</li>
+<li>just recently released 1.0</li>
+
+</ul>
+
+</section>
+<section id="slide-org50f72dd">
+<h3 id="org50f72dd">Components</h3>
+<ul>
+<li>Publisher API</li>
+<li>Consumer API</li>
+<li>Stream API</li>
+<li>Connector API</li>
+
+</ul>
+
+</section>
+<section id="slide-org3f0a1d7">
+<h3 id="org3f0a1d7">Log anatomy</h3>
+<p>
+This is an example of how partitions look like, so each partition is
+simply an ordered, immutable sequence of records that is continually
+appended to.
+</p>
+
+<p>
+Each record has assigned an offset in the form of a sequential id,
+that it's used to reference to it univocally.
+</p>
+
+<p>
+An important thing to keep in mind is that Kafka will store all your
+records forever, but it will enforce a retention period, which is the
+number of days something is available to be consumed. This allows to
+have constant time performances independently by the amount of total
+data currently stored.
+</p>
+
+<p>
+#+END_NOTES
+</p>
+
+
+<div class="figure">
+<p><img src="./images/log_anatomy.png" alt="log_anatomy.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-org1eaf724">
+<h3 id="org1eaf724">Log producer</h3>
+
+<div class="figure">
+<p><img src="./images/consumer-groups.png" alt="consumer-groups.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgfca43d6">
+<h3 id="orgfca43d6">Log consumer</h3>
+
+<div class="figure">
+<p><img src="./images/log_consumer.png" alt="log_consumer.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-org5759d43">
+<h3 id="org5759d43">Streaming</h3>
+
+<div class="figure">
+<p><img src="./images/kc_streams.jpeg" alt="kc_streams.jpeg" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgf5dd730">
+<h2 id="orgf5dd730">Why Kafka</h2>
+<ul>
+<li>Scalability</li>
+<li>Data integrity</li>
+<li>Auditing</li>
+<li>Proper Microservices</li>
+
+</ul>
+
+</section>
+<section id="slide-org239ebf8">
+<h3 id="org239ebf8">Data dichotomy</h3>
+
+<div class="figure">
+<p><img src="./images/dicothomy.png" alt="dicothomy.png" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgb5e52b6">
+<h2 id="orgb5e52b6">Clojure</h2>
+<ul>
+<li><b>Functional</b> Lisp</li>
+<li><b>Immutable</b> by default</li>
+<li><b>Data</b> centric</li>
+<li><b>JVM</b> based (but also JS and CLR)</li>
+<li>Great <b>REPL</b> experience</li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-org0890fed">
+<h2 id="org0890fed">Demo Time</h2>
+
+<div class="figure">
+<p><img src="./images/demo.gif" alt="demo.gif" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-org920fcff">
+<h2 id="org920fcff">Case study - Reconciliation</h2>
+<div class="outline-text-2" id="text-org920fcff">
+</div>
+</section>
+<section id="slide-org7677f66">
+<h3 id="org7677f66">Reconciler</h3>
+
+<div class="figure">
+<p><img src="./graph.png" alt="graph.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgc006561">
+<h3 id="orgc006561">Implementation</h3>
+<ul>
+<li>ingest repayments topic</li>
+<li>ingest transactions topic</li>
+<li>repayments ⨝ transactions</li>
+<li>augment that with reconciled? information</li>
+<li>branch on reconciled? to various output topics</li>
+
+</ul>
+
+</section>
+<section id="slide-org7b4a781">
+<h3 id="org7b4a781">Data flow (1)</h3>
+<p>
+Ingest input topics:
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-clojure"><span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">bank transactions</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:id</span> 1
+ <span style="color: #ccaaff;">:amount-cents</span> 100
+ <span style="color: #ccaaff;">:value-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aadddd;">}</span>
+
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:id</span> 2
+ <span style="color: #ccaaff;">:amount-cents</span> 150
+ <span style="color: #ccaaff;">:value-date</span> <span style="color: #aadddd;">"2017-01-04"</span><span style="color: #aadddd;">}</span>
+
+<span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">repayments</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:id</span> 1
+ <span style="color: #ccaaff;">:amount-cents</span> 100
+ <span style="color: #ccaaff;">:effective-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aadddd;">}</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orge438296">
+<h3 id="orge438296">Data flow (2)</h3>
+<p>
+Left join and augment:
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-clojure"><span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">first payment reconciled</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:transaction</span> <span style="color: #aaeecc;">{</span><span style="color: #ccaaff;">:id</span> 1
+               <span style="color: #ccaaff;">:amount-cents</span> 100
+               <span style="color: #ccaaff;">:value-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aaeecc;">}</span>
+
+ <span style="color: #ccaaff;">:repayment</span> <span style="color: #aaeecc;">{</span><span style="color: #ccaaff;">:id</span> 1
+             <span style="color: #ccaaff;">:amount-cents</span> 100
+             <span style="color: #ccaaff;">:effective-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aaeecc;">}</span>
+
+ <span style="color: #ccaaff;">:reconciled?</span> <span style="color: #ccaaff;">true</span><span style="color: #aadddd;">}</span>
+<span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">second repayment didn't reconcile</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:transaction</span> <span style="color: #aaeecc;">{</span><span style="color: #ccaaff;">:id</span> 2
+               <span style="color: #ccaaff;">:amount-cents</span> 150
+               <span style="color: #ccaaff;">:value-date</span> <span style="color: #aadddd;">"2017-01-04"</span><span style="color: #aaeecc;">}</span>
+
+ <span style="color: #ccaaff;">:repayment</span> <span style="color: #aaeecc;">{</span><span style="color: #ccaaff;">:id</span> 1
+             <span style="color: #ccaaff;">:amount-cents</span> 100
+             <span style="color: #ccaaff;">:effective-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aaeecc;">}</span>
+
+ <span style="color: #ccaaff;">:reconciled?</span> <span style="color: #ccaaff;">false</span><span style="color: #aadddd;">}</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orge910827">
+<h3 id="orge910827">Data flow (3)</h3>
+<p>
+Branch on reconciled:
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-clojure"><span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">bank transactions reconciled</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:id</span> 1
+ <span style="color: #ccaaff;">:repayment-id</span> 1
+ <span style="color: #ccaaff;">:amount-cents</span> 100
+ <span style="color: #ccaaff;">:value-date</span> <span style="color: #aadddd;">"2017-01-01"</span><span style="color: #aadddd;">}</span>
+
+<span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">repayments un-reconciled</span>
+<span style="color: #aadddd;">{</span><span style="color: #ccaaff;">:id</span> 1
+ <span style="color: #ccaaff;">:amount-cents</span> 150
+ <span style="color: #ccaaff;">:effective-date</span> <span style="color: #aadddd;">"2017-01-04"</span><span style="color: #aadddd;">}</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-org79011f6">
+<h3 id="org79011f6">Business logic (1)</h3>
+<p>
+Core business logic is just <b>pure functions</b>
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-clojure">
+<span style="color: #aadddd;">(</span><span style="color: #aaffaa;">defn</span> <span style="color: #aaccff;">dates-reconciles?</span>
+  <span style="color: #aaeecc;">[</span>value-date effective-date<span style="color: #aaeecc;">]</span>
+  <span style="color: #aaeecc;">(</span><span style="color: #aaffaa;">and</span> <span style="color: #aaccff;">(</span>not <span style="color: #ff3333;">(</span><span style="color: #aaeecc;">t</span>/before? value-date effective-date<span style="color: #ff3333;">)</span><span style="color: #aaccff;">)</span>
+       <span style="color: #aaccff;">(</span>&lt;= <span style="color: #ff3333;">(</span><span style="color: #aaeecc;">t</span>/in-days <span style="color: #aaffaa;">(</span><span style="color: #aaeecc;">t</span>/interval effective-date value-date<span style="color: #aaffaa;">)</span><span style="color: #ff3333;">)</span>
+           reconciliation-window<span style="color: #aaccff;">)</span><span style="color: #aaeecc;">)</span><span style="color: #aadddd;">)</span>
+
+<span style="color: #aadddd;">(</span><span style="color: #aaffaa;">defn</span> <span style="color: #aaccff;">reconciles?</span>
+  <span style="color: #aaeecc;">[</span>bank-transaction repayment<span style="color: #aaeecc;">]</span>
+  <span style="color: #aaeecc;">(</span><span style="color: #aaffaa;">and</span> <span style="color: #aaccff;">(</span>some? bank-transaction<span style="color: #aaccff;">)</span>
+       <span style="color: #aaccff;">(</span>some? repayment<span style="color: #aaccff;">)</span>
+       <span style="color: #aaccff;">(</span>= <span style="color: #ff3333;">(</span><span style="color: #ccaaff;">:amount-cents</span> bank-transaction<span style="color: #ff3333;">)</span> <span style="color: #ff3333;">(</span><span style="color: #ccaaff;">:amount-cents</span> repayment<span style="color: #ff3333;">)</span><span style="color: #aaccff;">)</span>
+       <span style="color: #aaccff;">(</span>dates-reconciles? <span style="color: #ff3333;">(</span><span style="color: #aaeecc;">tc</span>/to-date-time <span style="color: #aaffaa;">(</span><span style="color: #ccaaff;">:value-date</span> bank-transaction<span style="color: #aaffaa;">)</span><span style="color: #ff3333;">)</span>
+                          <span style="color: #ff3333;">(</span><span style="color: #aaeecc;">tc</span>/to-date-time <span style="color: #aaffaa;">(</span><span style="color: #ccaaff;">:effective-date</span> repayment<span style="color: #aaffaa;">)</span><span style="color: #ff3333;">)</span><span style="color: #aaccff;">)</span><span style="color: #aaeecc;">)</span><span style="color: #aadddd;">)</span>
+
+<span style="color: #5f5f5f; font-style: italic;">;; </span><span style="color: #5f5f5f; font-style: italic;">(reconciles?</span>
+<span style="color: #5f5f5f; font-style: italic;">;;  </span><span style="color: #5f5f5f; font-style: italic;">{:amount-cents 100 :value-date "2018-01-01"}</span>
+<span style="color: #5f5f5f; font-style: italic;">;;  </span><span style="color: #5f5f5f; font-style: italic;">{:amount-cents 100 :effective-date "2018-01-01"}) =&gt; true</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgefc7bad">
+<h3 id="orgefc7bad">Business logic (2)</h3>
+<div class="org-src-container">
+
+<pre  class="src src-clojure">
+<span style="color: #aadddd;">(</span><span style="color: #aaffaa;">defn</span> <span style="color: #aaccff;">set-reconciled</span>
+  <span style="color: #aaeecc;">[</span>repayment txn<span style="color: #aaeecc;">]</span>
+  <span style="color: #aaeecc;">{</span><span style="color: #ccaaff;">:bank-transaction</span> txn
+   <span style="color: #ccaaff;">:repayment</span>        repayment
+   <span style="color: #ccaaff;">:reconciled</span>       <span style="color: #aaccff;">(</span>reconciles? txn repayment<span style="color: #aaccff;">)</span><span style="color: #aaeecc;">}</span><span style="color: #aadddd;">)</span>
+
+</pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-org93071c6">
+<h2 id="org93071c6">Conclusions</h2>
+<p>
+We ♡ Clojure
+</p>
+
+<p>
+Clojure ♡ Kafka
+</p>
+
+<p>
+➜ We ♡ Kafka
+</p>
+
+<p>
+And <b>we are hiring</b> <a href="https://www.fundingcircle.com/uk/careers/">https://www.fundingcircle.com/uk/careers/</a>
+</p>
+</section>
+</section>
+</div>
+</div>
+<script src="/home/andrea/projects/forks/reveal.js/lib/js/head.min.js"></script>
+<script src="/home/andrea/projects/forks/reveal.js/js/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: true,
+slideNumber: 'c',
+rollingLinks: false,
+keyboard: true,
+overview: true,
+
+theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+transition: Reveal.getQueryHash().transition || 'fade', // default/cube/page/concave/zoom/linear/fade/none
+transitionSpeed: 'fast',
+multiplex: {
+    secret: '', // null if client
+    id: '', // id, obtained from socket.io server
+    url: '' // Location of socket.io server
+},
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: '/home/andrea/projects/forks/reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+ { src: '/home/andrea/projects/forks/reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: '/home/andrea/projects/forks/reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: '/home/andrea/projects/forks/reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+ { src: '/home/andrea/projects/forks/reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }]
+});
+</script>
+</body>
+</html>
