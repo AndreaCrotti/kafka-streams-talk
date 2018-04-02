@@ -14,8 +14,6 @@
 - Demo time
 - Real world scenario
 
-* What is Kafka
-
 ** Kafka
 
 - distributed *append only immutable* log
